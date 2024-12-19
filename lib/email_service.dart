@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart'; // Untuk mendeteksi platform
+import 'package:http/http.dart' as http; // Untuk HTTP request
 
 class EmailService {
   static Future<bool> sendAudioEmail({
@@ -12,19 +12,25 @@ class EmailService {
     required String audioFilePath,
   }) async {
     try {
-      const String serviceId = 'service_2opkv0p';
-      const String templateId = 'template_zp8e9h5';
-      const String userId = '7TuPqzAsANRTuH5iN';
+      const String serviceId = 'service_2opkv0p'; 
+      const String templateId = 'template_zp8e9h5'; 
+      const String userId = '7TuPqzAsANRTuH5iN'; 
 
-      File audioFile = File(audioFilePath);
-      
-      if (!await audioFile.exists()) {
-        debugPrint('Audio file does not exist');
+      String base64Audio = '';
+      if ( audioFilePath.startsWith('blob:')) {
+        final response = await http.get(Uri.parse(audioFilePath));
+
+        if (response.statusCode == 200) {
+          final Uint8List audioBytes = response.bodyBytes;
+          base64Audio = base64Encode(audioBytes);
+        } else {
+          debugPrint('Failed to fetch blob: ${response.statusCode}');
+          return false;
+        }
+      } else {
+        debugPrint('Invalid audio file URL');
         return false;
       }
-
-      List<int> audioBytes = await audioFile.readAsBytes();
-      String base64Audio = base64Encode(audioBytes);
 
       final Map<String, dynamic> emailData = {
         'service_id': serviceId,
@@ -35,13 +41,8 @@ class EmailService {
           'recipient_email': recipientEmail,
           'user_subject': userSubject,
           'user_message': userMessage,
+        'attachments': base64Audio,
         },
-        'attachments': [
-          {
-            'name': 'audio.wav',  
-            'data': base64Audio,
-          },
-        ],
       };
 
       final response = await http.post(
@@ -57,8 +58,8 @@ class EmailService {
         debugPrint('Failed to send email: ${response.body}');
         return false;
       }
-    } catch (e) {
-      debugPrint('Error sending email: $e');
+    } catch (e, s) {
+      debugPrint('Error sending email: $e $s');
       return false;
     }
   }
