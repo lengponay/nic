@@ -79,19 +79,19 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-  plugin:
-    platforms:
-      web:
-        pluginClass: FlutterSoundPlugin
-        fileName: flutter_sound_web.dart
+  # plugin:
+  #   platforms:
+  #     web:
+  #       pluginClass: FlutterSoundPlugin
+  #       fileName: flutter_sound_web.dart
 
-  assets:
+  # assets:
     # - howler/howler.js
-    - src/flutter_sound.js
-    - src/flutter_sound_player.js
-    - src/flutter_sound_recorder.js
-    - .env
-    - /Users/lengponay/development/responsive/lib/assets/client_secret_825153011077-na361sklnsllkaut2qjv807451a0e2eg.apps.googleusercontent.com.json
+    # - src/flutter_sound.js
+    # - src/flutter_sound_player.js
+    # - src/flutter_sound_recorder.js
+    # - .env
+    # - /Users/lengponay/development/responsive/lib/assets/client_secret_825153011077-na361sklnsllkaut2qjv807451a0e2eg.apps.googleusercontent.com.json
 
 
   # To add assets to your application, add an assets section, like this:
