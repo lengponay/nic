@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'audio_record.dart';
-
+import 'audio_recorder.dart';
 import 'audio_player.dart';
-import 'email_service.dart';
+import 'email.dart';
+import 'firebase_storage.dart';
 
 class RecordTest extends StatefulWidget {
   const RecordTest({super.key});
@@ -30,8 +30,8 @@ class _RecordTestState extends State<RecordTest> {
     super.dispose();
   }
 
-  Future<void> _showEmailDialog(String filePath) async {
-    if (filePath.isEmpty) {
+  Future<void> _showEmailDialog(String firebaseUrl) async {
+    if (firebaseUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No audio recorded yet')),
       );
@@ -44,58 +44,61 @@ class _RecordTestState extends State<RecordTest> {
         title: const Text('Send Audio via Email'),
         content: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  hintText: 'Enter your name',
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    hintText: 'Enter your name',
+                  ),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Name is required'
+                      : null,
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Name is required' : null,
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter recipient email',
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'Enter recipient email',
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Email is required';
+                    }
+                    final emailRegex = RegExp(
+                        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                    return emailRegex.hasMatch(value)
+                        ? null
+                        : 'Invalid email format';
+                  },
                 ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Email is required';
-                  }
-                  final emailRegex = RegExp(
-                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-                  return emailRegex.hasMatch(value)
-                      ? null
-                      : 'Invalid email format';
-                },
-              ),
-              TextFormField(
-                controller: _subjectController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject',
-                  hintText: 'Enter email subject',
+                TextFormField(
+                  controller: _subjectController,
+                  decoration: const InputDecoration(
+                    labelText: 'Subject',
+                    hintText: 'Enter email subject',
+                  ),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Subject is required'
+                      : null,
                 ),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Subject is required'
-                    : null,
-              ),
-              TextFormField(
-                controller: _messageController,
-                decoration: const InputDecoration(
-                  labelText: 'Message',
-                  hintText: 'Enter your message',
+                TextFormField(
+                  controller: _messageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Message',
+                    hintText: 'Enter your message',
+                  ),
+                  maxLines: 3,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Message is required'
+                      : null,
                 ),
-                maxLines: 3,
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Message is required'
-                    : null,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -111,20 +114,18 @@ class _RecordTestState extends State<RecordTest> {
                   recipientEmail: _emailController.text,
                   userSubject: _subjectController.text,
                   userMessage: _messageController.text,
-                  audioFilePath: filePath, 
+                  downloadUrl: firebaseUrl, 
                 );
-
-                Navigator.of(context).pop();
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      success
-                          ? 'Email sent successfully'
-                          : 'Failed to send email. Please try again.',
-                    ),
+                    content: Text(success
+                        ? 'Email sent successfully'
+                        : 'Failed to send email. Please try again.'),
                   ),
                 );
+
+                Navigator.of(context).pop();
               }
             },
             child: const Text('Send'),
@@ -157,9 +158,9 @@ class _RecordTestState extends State<RecordTest> {
               else
                 Flexible(
                   child: Recorder(
-                    onStop: (path) {
+                    onStop: (String url) {//change param path -> string url venh
                       setState(() {
-                        audioPath = path;
+                        audioPath = url; //path -> url
                         showPlayer = true;
                       });
                     },
@@ -170,9 +171,7 @@ class _RecordTestState extends State<RecordTest> {
                   onPressed: () async {
                     if (audioPath != null) {
                       await _showEmailDialog(audioPath!); 
-                    } 
-                    else 
-                    {
+                    } else {
                       debugPrint("Audio path is null!");
                     }
                   },
@@ -185,10 +184,3 @@ class _RecordTestState extends State<RecordTest> {
     );
   }
 }
-
-void main() {
-  runApp(const MaterialApp(
-    home: RecordTest(),
-  ));
-}
-
