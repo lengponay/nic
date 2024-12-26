@@ -1,9 +1,9 @@
+// audio_web.dart
 import 'dart:js_interop';
 import 'dart:typed_data';
-
 import 'package:web/web.dart' as web;
-
 import 'package:record/record.dart';
+import 'firebase_storage.dart';
 
 mixin AudioRecorderMixin {
   Future<void> recordFile(AudioRecorder recorder, RecordConfig config) {
@@ -13,26 +13,25 @@ mixin AudioRecorderMixin {
   Future<void> recordStream(AudioRecorder recorder, RecordConfig config) async {
     final bytes = <int>[];
     final stream = await recorder.startStream(config);
-
+    
     stream.listen(
       (data) => bytes.addAll(data),
-      onDone: () => downloadWebData(
-        web.URL.createObjectURL(
+      onDone: () async {
+        final blobUrl = web.URL.createObjectURL(
           web.Blob(<JSUint8Array>[Uint8List.fromList(bytes).toJS].toJS),
-        ),
-      ),
+        );
+        await uploadToFirebase(blobUrl);
+      },
     );
   }
 
-  void downloadWebData(String path) {
-    final anchor = web.document.createElement('a') as web.HTMLAnchorElement
-      ..href = path
-      ..style.display = 'none'
-      ..download = 'audio.wav';
-    web.document.body!.appendChild(anchor);
-    anchor.click();
-    web.document.body!.removeChild(anchor);
+  Future<String?> uploadToFirebase(String blobUrl) async {
+    return await FirebaseStorageService.uploadAudioFile(blobUrl);
+  }
+
+  String createBlobUrl(Uint8List audioData) {
+    return web.URL.createObjectURL(
+      web.Blob(<JSUint8Array>[audioData.toJS].toJS),
+    );
   }
 }
-
-
