@@ -6,11 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class AudioPlayer extends StatefulWidget {
-  /// Path from where to play recorded audio
   final String source;
-
-  /// Callback when audio file should be removed
-  /// Setting this to null hides the delete button
   final VoidCallback onDelete;
 
   const AudioPlayer({
@@ -160,7 +156,26 @@ class AudioPlayerState extends State<AudioPlayer> {
     );
   }
 
-  Future<void> play() => _audioPlayer.play(_source);
+  Source get _source {
+    if (kIsWeb) {
+      if (widget.source.startsWith('https://firebasestorage.googleapis.com') ||
+          widget.source.startsWith('gs://')) {
+        return ap.UrlSource(widget.source);
+      } else if (widget.source.startsWith('blob:')) {
+        return ap.UrlSource(widget.source);
+      }
+    }
+    return ap.DeviceFileSource(widget.source);
+  }
+
+  Future<void> play() async {
+    try {
+      await _audioPlayer.play(_source);
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
+    }
+  }
+
 
   Future<void> pause() async {
     await _audioPlayer.pause();
@@ -172,6 +187,5 @@ class AudioPlayerState extends State<AudioPlayer> {
     setState(() {});
   }
 
-  Source get _source =>
-      kIsWeb ? ap.UrlSource(widget.source) : ap.DeviceFileSource(widget.source);
+  
 }
